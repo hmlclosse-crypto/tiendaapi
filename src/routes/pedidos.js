@@ -68,7 +68,7 @@ router.post('/', async (req, res, next) => {
       if (productos.length === 0) {
         await conexion.rollback();
 
-        return res.status(404).json({
+        return res.status(422).json({
           error: 'PRODUCTO_NO_ENCONTRADO',
           producto_id: item.producto_id
         });
@@ -79,7 +79,7 @@ router.post('/', async (req, res, next) => {
       if (producto.stock < item.cantidad) {
         await conexion.rollback();
 
-        return res.status(409).json({
+        return res.status(422).json({
           error: 'STOCK_INSUFICIENTE',
           producto_id: item.producto_id,
           disponible: producto.stock

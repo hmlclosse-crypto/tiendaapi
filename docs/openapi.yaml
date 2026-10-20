@@ -1,0 +1,325 @@
+openapi: 3.0.3
+info:
+  title: TiendaAPI
+  version: 1.0.0
+  description: API REST de productos, inventario y pedidos desarrollada con
+    Node.js, Express y MySQL.
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/salud:
+    get:
+      summary: Comprobar conexión con MySQL
+      responses:
+        "200":
+          description: API y base de datos funcionando
+        "500":
+          description: Error interno
+  /api/v1/productos:
+    get:
+      summary: Listar todos los productos
+      responses:
+        "200":
+          description: Lista de productos
+    post:
+      summary: Crear un producto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sku
+                - nombre
+                - precio
+                - stock
+                - categoria_id
+              properties:
+                sku:
+                  type: string
+                  example: PRU-002
+                nombre:
+                  type: string
+                  example: Producto nuevo
+                precio:
+                  type: number
+                  example: 25.5
+                stock:
+                  type: integer
+                  example: 10
+                categoria_id:
+                  type: integer
+                  example: 3
+      responses:
+        "201":
+          description: Producto creado
+        "400":
+          description: Datos inválidos
+        "409":
+          description: SKU duplicado
+        "422":
+          description: Categoría inexistente
+  /api/v1/productos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Consultar producto por ID
+      responses:
+        "200":
+          description: Producto encontrado
+        "400":
+          description: ID inválido
+        "404":
+          description: Producto no encontrado
+    put:
+      summary: Actualizar precio y stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - precio
+                - stock
+              properties:
+                precio:
+                  type: number
+                  example: 30
+                stock:
+                  type: integer
+                  example: 15
+      responses:
+        "200":
+          description: Producto actualizado
+        "400":
+          description: Datos inválidos
+        "404":
+          description: Producto no encontrado
+  /api/v1/productos/categoria/{nombre}:
+    get:
+      summary: Filtrar productos por categoría
+      parameters:
+        - name: nombre
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Productos de la categoría
+  /api/v1/pedidos:
+    get:
+      tags:
+        - Pedidos
+      summary: Listar pedidos
+      description: Devuelve los pedidos del más reciente al más antiguo. Permite
+        filtrar por estado.
+      parameters:
+        - name: estado
+          in: query
+          required: false
+          description: Filtrar pedidos por su estado
+          schema:
+            type: string
+            enum:
+              - pendiente
+              - pagado
+              - enviado
+              - cancelado
+      responses:
+        "200":
+          description: Lista de pedidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pedido"
+        "400":
+          description: Estado inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Error interno del servidor
+    post:
+      tags:
+        - Pedidos
+      summary: Crear pedido y descontar inventario
+      description: Utiliza una transacción MySQL para guardar el pedido y actualizar
+        el stock.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NuevoPedido"
+      responses:
+        "201":
+          description: Pedido creado correctamente
+        "400":
+          description: Datos inválidos o productos repetidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Producto inexistente o stock insuficiente
+        "500":
+          description: Error interno del servidor
+  /api/v1/pedidos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador del pedido
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+    get:
+      tags:
+        - Pedidos
+      summary: Consultar pedido por ID
+      description: Devuelve los datos del pedido y sus productos.
+      responses:
+        "200":
+          description: Pedido encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PedidoDetalle"
+        "400":
+          description: ID inválido
+        "404":
+          description: Pedido no encontrado
+        "500":
+          description: Error interno del servidor
+    patch:
+      tags:
+        - Pedidos
+      summary: Actualizar estado de un pedido
+      description: Permite cambiar solamente el estado del pedido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CambioEstado"
+      responses:
+        "200":
+          description: Estado actualizado correctamente
+        "400":
+          description: ID o estado inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Pedido no encontrado
+        "500":
+          description: Error interno del servidor
+components:
+  schemas:
+    NuevoPedido:
+      type: object
+      required:
+        - cliente_nombre
+        - cliente_correo
+        - items
+      properties:
+        cliente_nombre:
+          type: string
+          example: Cliente de prueba
+        cliente_correo:
+          type: string
+          format: email
+          example: prueba@example.com
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - producto_id
+              - cantidad
+            properties:
+              producto_id:
+                type: integer
+                example: 11
+              cantidad:
+                type: integer
+                minimum: 1
+                example: 1
+    Pedido:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        cliente_nombre:
+          type: string
+          example: Cliente de prueba
+        cliente_correo:
+          type: string
+          example: prueba@example.com
+        estado:
+          type: string
+          enum:
+            - pendiente
+            - pagado
+            - enviado
+            - cancelado
+        total:
+          type: number
+          example: 60
+        creado_en:
+          type: string
+          format: date-time
+    PedidoDetalle:
+      allOf:
+        - $ref: "#/components/schemas/Pedido"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  producto_id:
+                    type: integer
+                  nombre:
+                    type: string
+                  cantidad:
+                    type: integer
+                  precio_unitario:
+                    type: number
+    CambioEstado:
+      type: object
+      required:
+        - estado
+      properties:
+        estado:
+          type: string
+          enum:
+            - pendiente
+            - pagado
+            - enviado
+            - cancelado
+          example: pagado
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: ESTADO_INVALIDO
+        mensaje:
+          type: string
+          example: Estado no permitido

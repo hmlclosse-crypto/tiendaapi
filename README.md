@@ -74,3 +74,25 @@ Esto permite verificar existencias, descontar inventario y evitar cambios parcia
 ## Documentación adicional
 
 Consultar los archivos de la carpeta `docs`.
+
+## Resultados de pruebas
+
+Se realizaron las 12 pruebas indicadas en la guía del taller.
+
+| Nº | Prueba | HTTP esperado | HTTP obtenido | Resultado |
+|---|---|---|---|---|
+| 1 | Crear pedido válido | 201 | 201 | Correcto |
+| 2 | Verificar descuento de inventario | 200 | 200 | Correcto: stock 12 → 10 |
+| 3 | Pedido sin cliente | 400 | 400 | Correcto |
+| 4 | Pedido sin productos | 400 | 400 | Correcto |
+| 5 | Cantidad negativa | 400 | 400 | Correcto |
+| 6 | Producto inexistente | 422 | Error PRODUCTO_NO_ENCONTRADO |
+| 7 | Stock insuficiente | 422 | 422 | Correcto |
+| 8 | Verificar inventario tras rechazo | 200 | 200 | Correcto: stock sigue en 10 |
+| 9 | Filtrar pedidos pendientes | 200 | 200 | Correcto |
+| 10 | Consultar pedido inexistente | 404 | 404 | Correcto |
+| 11 | Actualizar pedido a pagado | 200 | 200 | Correcto |
+| 12 | Rechazar estado inválido | 400 | 400 | Correcto |
+
+Las pruebas 7 y 8 confirmaron que un pedido rechazado
+por falta de inventario no modifica las existencias.
