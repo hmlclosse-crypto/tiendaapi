@@ -15,7 +15,7 @@ app.get('/api/salud', async (req, res, next) => {
   }
 });
 
-// Paso 6: app.use('/api/v1/productos', require('./src/routes/productos'));
+app.use('/api/v1/productos', require('./src/routes/productos'));
 // Paso 8: app.use('/api/v1/pedidos', require('./src/routes/pedidos'));
 // Paso 9: documentación Swagger
 
