@@ -160,4 +160,136 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+
+const ESTADOS = ['pendiente', 'pagado', 'enviado', 'cancelado'];
+
+// GET /api/v1/pedidos
+// Listar todos los pedidos o filtrar por estado
+router.get('/', async (req, res, next) => {
+  const { estado } = req.query;
+
+  if (estado !== undefined && !ESTADOS.includes(estado)) {
+    return res.status(400).json({
+      error: 'ESTADO_INVALIDO',
+      mensaje: 'Estado no permitido'
+    });
+  }
+
+  try {
+    let sql = `
+      SELECT id, cliente_nombre, cliente_correo,
+             estado, total, creado_en
+      FROM pedidos
+    `;
+
+    const parametros = [];
+
+    if (estado !== undefined) {
+      sql += ' WHERE estado = ?';
+      parametros.push(estado);
+    }
+
+    sql += ' ORDER BY creado_en DESC, id DESC';
+
+    const [pedidos] = await pool.query(sql, parametros);
+
+    return res.status(200).json(pedidos);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/v1/pedidos/:id
+// Consultar un pedido y sus productos
+router.get('/:id', async (req, res, next) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({
+      error: 'ID_INVALIDO',
+      mensaje: 'El ID debe ser un entero positivo'
+    });
+  }
+
+  try {
+    const [pedidos] = await pool.query(
+      `SELECT id, cliente_nombre, cliente_correo,
+              estado, total, creado_en
+       FROM pedidos
+       WHERE id = ?`,
+      [id]
+    );
+
+    if (pedidos.length === 0) {
+      return res.status(404).json({
+        error: 'PEDIDO_NO_ENCONTRADO',
+        mensaje: 'El pedido no existe'
+      });
+    }
+
+    const [items] = await pool.query(
+      `SELECT pi.producto_id, p.nombre,
+              pi.cantidad, pi.precio_unitario
+       FROM pedido_items pi
+       INNER JOIN productos p
+       ON p.id = pi.producto_id
+       WHERE pi.pedido_id = ?
+       ORDER BY pi.id`,
+      [id]
+    );
+
+    return res.status(200).json({
+      ...pedidos[0],
+      items
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/v1/pedidos/:id
+// Actualizar solamente el estado del pedido
+router.patch('/:id', async (req, res, next) => {
+  const id = Number(req.params.id);
+  const { estado } = req.body || {};
+
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({
+      error: 'ID_INVALIDO',
+      mensaje: 'El ID debe ser un entero positivo'
+    });
+  }
+
+  if (!ESTADOS.includes(estado)) {
+    return res.status(400).json({
+      error: 'ESTADO_INVALIDO',
+      mensaje: 'Use pendiente, pagado, enviado o cancelado'
+    });
+  }
+
+  try {
+    const [resultado] = await pool.query(
+      `UPDATE pedidos
+       SET estado = ?
+       WHERE id = ?`,
+      [estado, id]
+    );
+
+    if (resultado.affectedRows === 0) {
+      return res.status(404).json({
+        error: 'PEDIDO_NO_ENCONTRADO',
+        mensaje: 'El pedido no existe'
+      });
+    }
+
+    return res.status(200).json({
+      mensaje: 'Estado actualizado correctamente',
+      pedido_id: id,
+      estado
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
