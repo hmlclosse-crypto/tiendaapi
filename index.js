@@ -16,8 +16,12 @@ app.get('/api/salud', async (req, res, next) => {
 });
 
 app.use('/api/v1/productos', require('./src/routes/productos'));
-// Paso 8: app.use('/api/v1/pedidos', require('./src/routes/pedidos'));
-// Paso 9: documentación Swagger
+app.use('/api/v1/pedidos', require('./src/routes/pedidos'));
+
+const swaggerUi = require('swagger-ui-express');
+const openapi = require('./openapi.json');
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
+
 
 app.use((req, res) => res.status(404).json({ error: 'RUTA_NO_ENCONTRADA' }));
 app.use(require('./src/middlewares/errores'));

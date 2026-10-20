@@ -1,0 +1,248 @@
+
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TiendaAPI",
+    "version": "1.0.0",
+    "description": "API REST de productos, inventario y pedidos desarrollada con Node.js, Express y MySQL."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "paths": {
+    "/api/salud": {
+      "get": {
+        "summary": "Comprobar conexión con MySQL",
+        "responses": {
+          "200": {
+            "description": "API y base de datos funcionando"
+          },
+          "500": {
+            "description": "Error interno"
+          }
+        }
+      }
+    },
+    "/api/v1/productos": {
+      "get": {
+        "summary": "Listar todos los productos",
+        "responses": {
+          "200": {
+            "description": "Lista de productos"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un producto",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sku",
+                  "nombre",
+                  "precio",
+                  "stock",
+                  "categoria_id"
+                ],
+                "properties": {
+                  "sku": {
+                    "type": "string",
+                    "example": "PRU-002"
+                  },
+                  "nombre": {
+                    "type": "string",
+                    "example": "Producto nuevo"
+                  },
+                  "precio": {
+                    "type": "number",
+                    "example": 25.5
+                  },
+                  "stock": {
+                    "type": "integer",
+                    "example": 10
+                  },
+                  "categoria_id": {
+                    "type": "integer",
+                    "example": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Producto creado"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "409": {
+            "description": "SKU duplicado"
+          },
+          "422": {
+            "description": "Categoría inexistente"
+          }
+        }
+      }
+    },
+    "/api/v1/productos/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Consultar producto por ID",
+        "responses": {
+          "200": {
+            "description": "Producto encontrado"
+          },
+          "400": {
+            "description": "ID inválido"
+          },
+          "404": {
+            "description": "Producto no encontrado"
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar precio y stock",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "precio",
+                  "stock"
+                ],
+                "properties": {
+                  "precio": {
+                    "type": "number",
+                    "example": 30
+                  },
+                  "stock": {
+                    "type": "integer",
+                    "example": 15
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Producto actualizado"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "404": {
+            "description": "Producto no encontrado"
+          }
+        }
+      }
+    },
+    "/api/v1/productos/categoria/{nombre}": {
+      "get": {
+        "summary": "Filtrar productos por categoría",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Productos de la categoría"
+          }
+        }
+      }
+    },
+    "/api/v1/pedidos": {
+      "post": {
+        "summary": "Crear pedido y descontar inventario",
+        "description": "Utiliza una transacción MySQL para guardar el pedido y actualizar el stock.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cliente_nombre",
+                  "cliente_correo",
+                  "items"
+                ],
+                "properties": {
+                  "cliente_nombre": {
+                    "type": "string",
+                    "example": "Cliente de prueba"
+                  },
+                  "cliente_correo": {
+                    "type": "string",
+                    "example": "prueba@example.com"
+                  },
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "producto_id",
+                        "cantidad"
+                      ],
+                      "properties": {
+                        "producto_id": {
+                          "type": "integer",
+                          "example": 11
+                        },
+                        "cantidad": {
+                          "type": "integer",
+                          "example": 2
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pedido creado"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "404": {
+            "description": "Producto no encontrado"
+          },
+          "409": {
+            "description": "Stock insuficiente"
+          },
+          "500": {
+            "description": "Error interno"
+          }
+        }
+      }
+    }
+  }
+}
